@@ -4805,7 +4805,11 @@ Level_FromCheckpoint:
 	movea.l	(a1,d0.w),a1
 +
 	move.b	1(a1),(Demo_press_counter).w
+    if emerald_hill_zone<>0
+	cmpi.b	#emerald_hill_zone,(Current_Zone).w
+    else
 	tst.b	(Current_Zone).w	; emerald_hill_zone
+    endif
 	bne.s	+
 	lea	(Demo_EHZ_Tails).l,a1
 	move.b	1(a1),(Demo_press_counter_2P).w
@@ -13143,8 +13147,11 @@ pal_A0FE:	BINCLUDE	"art/palettes/Ending Cycle.bin"
 ; Sprite_A1D6:
 ObjCA:
 	addq.w	#1,objoff_32(a0)
+	; Branch if Tails...
 	cmpi.w	#4,(Ending_Routine).w
 	beq.s	+
+	; ...and branch if not Super Sonic, making the first check redundant.
+	; Was Sonic's ending originally *always* going to feature Super Sonic?
 	cmpi.w	#2,(Ending_Routine).w
 	bne.s	+
 	st.b	(Super_Sonic_flag).w
@@ -14144,7 +14151,7 @@ EndingSequence_LoadFlickyArt_Chicken:
 	jmpto	NemDec, JmpTo_NemDec
 ; ===========================================================================
 Pal_AC7E:	BINCLUDE	"art/palettes/Ending Sonic.bin"
-Pal_AC9E:	BINCLUDE	"art/palettes/Ending Sonic Far.bin"
+Pal_AC9E:	BINCLUDE	"art/palettes/Ending Tails.bin"
 Pal_ACDE:	BINCLUDE	"art/palettes/Ending Background.bin"
 Pal_AD1E:	BINCLUDE	"art/palettes/Ending Photos.bin"
 Pal_AD3E:	BINCLUDE	"art/palettes/Ending Super Sonic.bin"
@@ -23770,7 +23777,6 @@ Obj1C_Radii:
 	dc.b $30	; 18
 	dc.b $40	; 19
 	dc.b $50	; 20
-	dc.b   0	; 21
 	even
 ; ===========================================================================
 ; loc_112A4:
@@ -91137,58 +91143,16 @@ MapEng_EndingTailsPlane:	BINCLUDE	"mappings/misc/Closeup of Tails flying plane i
 MapEng_EndingSonicPlane:	BINCLUDE	"mappings/misc/Closeup of Sonic flying plane in ending sequence.bin"
 ;--------------------------------------------------------------------------------------
 ; Enigma compressed sprite mappings
-; Strange unused mappings (duplicate of MapEng_EndGameLogo)
-	even
-; MapEng_9082A:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 1.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_90852:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 2.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_9087A:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 3.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_908A2:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 4.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_908CA:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 5.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_908F2:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 6.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_9091A:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 7.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_90942:
-	BINCLUDE	"mappings/misc/Strange unused mappings 1 - 8.bin"
-;--------------------------------------------------------------------------------------
-; Enigma compressed sprite mappings
-; Strange unused mappings (same as above)
-	even
-; MapEng_9096A:
-	BINCLUDE	"mappings/misc/Strange unused mappings 2.bin"
+; Strange unused mappings (duplicates of MapEng_EndGameLogo)
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
+	BINCLUDE	"mappings/misc/Sonic 2 end of game logo.bin"
 ;--------------------------------------------------------------------------------------
 ; Nemesis compressed art (363 blocks)
 ; Movie sequence at end of game		; ArtNem_90992:
