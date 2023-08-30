@@ -55,12 +55,12 @@ useFullWaterTables = 0
 	include "s2.macrosetup.asm"
 
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-; Equates section - Names for variables.
-	include "s2.constants.asm"
-
-; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Simplifying macros and functions
 	include "s2.macros.asm"
+
+; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+; Equates section - Names for variables.
+	include "s2.constants.asm"
 
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Expressing SMPS bytecode in a portable and human-readable form
@@ -1440,9 +1440,14 @@ ClearScreen:
 	clr.l	(Vscroll_Factor).w
 	clr.l	(unk_F61A).w
 
+    if fixBugs
+	clearRAM Sprite_Table,Sprite_Table_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
+    else
 	; These '+4's shouldn't be here; clearRAM accidentally clears an additional 4 bytes
 	clearRAM Sprite_Table,Sprite_Table_End+4
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End+4
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len+4
+    endif
 
 	startZ80
 	rts
@@ -4829,9 +4834,9 @@ Level_TtlCard:
 	bsr.w	LevelSizeLoad
 	jsrto	DeformBgLayer, JmpTo_DeformBgLayer
 	clr.w	(Vscroll_Factor_FG).w
-	move.w	#-$E0,(Vscroll_Factor_P2_FG).w
+	move.w	#-224,(Vscroll_Factor_P2_FG).w
 
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
 
 	bsr.w	LoadZoneTiles
 	jsrto	loadZoneBlockMaps, JmpTo_loadZoneBlockMaps
@@ -6509,12 +6514,12 @@ SpecialStage:
 ; \------------------------------------------------------------------------/
     if fixBugs
 	clearRAM Sprite_Table,Sprite_Table_End
-	clearRAM SS_Horiz_Scroll_Buf_1,SS_Horiz_Scroll_Buf_1_End
+	clearRAM SS_Horiz_Scroll_Buf_1,SS_Horiz_Scroll_Buf_1+HorizontalScrollBuffer.len
 	clearRAM SS_Shared_RAM,SS_Shared_RAM_End
     else
 	; These '+4's shouldn't be here; 'clearRAM' accidentally clears an additional 4 bytes.
 	clearRAM Sprite_Table,Sprite_Table_End+4
-	clearRAM SS_Horiz_Scroll_Buf_1,SS_Horiz_Scroll_Buf_1_End+4
+	clearRAM SS_Horiz_Scroll_Buf_1,SS_Horiz_Scroll_Buf_1+HorizontalScrollBuffer.len+4
 	clearRAM SS_Shared_RAM,SS_Shared_RAM_End+4
     endif
 	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
@@ -9018,7 +9023,7 @@ ssInitTableBuffers:
 	swap	d1
 	swap	d2
 	swap	d3
-	moveq	#$1F,d4
+	moveq	#bytesToXcnt(HorizontalScrollBuffer.len,4*8),d4
 
 -	move.l	d0,(a1)+
 	move.l	d0,(a1)+
@@ -9231,7 +9236,7 @@ off_6E54:	offsetTable
 	lea	(SS_Horiz_Scroll_Buf_2 + 2).w,a1			; Load alternate horizontal scroll buffer for PNT B
 	neg.w	d2							; Change the sign of the background offset
 +
-	move.w	#$FF,d0							; 256 lines
+	move.w	#bytesToLcnt(HorizontalScrollBuffer.len),d0						; 256 lines ; TODO: THIS FUCKER
 -	sub.w	d2,(a1)+						; Change current line's offset
 	adda_.l	#2,a1							; Skip PNTA entry
 	dbf	d0,-
@@ -13057,10 +13062,10 @@ EndingSequence:
 	move.w	d0,(Credits_Trigger).w
 
     if fixBugs
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
     else
 	; The '+4' shouldn't be here; clearRAM accidentally clears an additional 4 bytes
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End+4
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len+4
     endif
 
 	move.w	#$7FFF,(PalCycle_Timer).w
@@ -13137,10 +13142,10 @@ EndgameCredits:
 	move.w	d0,(Credits_Trigger).w
 
     if fixBugs
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
     else
 	; The '+4' shouldn't be here; clearRAM accidentally clears an additional 4 bytes
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End+4
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len+4
     endif
 
 	moveq	#signextendB(MusID_Credits),d0
@@ -15433,11 +15438,11 @@ SwScrl_EHZ_2P:
 	; Update the background's vertical scrolling.
 	moveq	#0,d0
 	move.w	d0,(Vscroll_Factor_P2_BG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_BG).w
+	subi.w	#224,(Vscroll_Factor_P2_BG).w
 
 	; Update the foregrounds's vertical scrolling.
 	move.w	(Camera_Y_pos_P2).w,(Vscroll_Factor_P2_FG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_FG).w
+	subi.w	#224,(Vscroll_Factor_P2_FG).w
 
 	; Only allow the screen to vertically scroll two pixels at a time.
 	andi.l	#$FFFEFFFE,(Vscroll_Factor_P2).w
@@ -16044,11 +16049,11 @@ SwScrl_HTZ_2P:
 	; Update the background's vertical scrolling.
 	moveq	#0,d0
 	move.w	d0,(Vscroll_Factor_P2_BG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_BG).w
+	subi.w	#224,(Vscroll_Factor_P2_BG).w
 
 	; Update the foreground's vertical scrolling.
 	move.w	(Camera_Y_pos_P2).w,(Vscroll_Factor_P2_FG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_FG).w
+	subi.w	#224,(Vscroll_Factor_P2_FG).w
 
 	; Only allow the screen to vertically scroll two pixels at a time.
 	andi.l	#$FFFEFFFE,(Vscroll_Factor_P2).w
@@ -16773,11 +16778,11 @@ SwScrl_MCZ2P_RowHeights:
 
 	; Update the background's vertical scrolling.
 	move.w	d0,(Vscroll_Factor_P2_BG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_BG).w
+	subi.w	#224,(Vscroll_Factor_P2_BG).w
 
 	; Update the foreground's vertical scrolling.
 	move.w	(Camera_Y_pos_P2).w,(Vscroll_Factor_P2_FG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_FG).w
+	subi.w	#224,(Vscroll_Factor_P2_FG).w
 
 	; Only allow the screen to vertically scroll two pixels at a time.
 	andi.l	#$FFFEFFFE,(Vscroll_Factor_P2).w
@@ -17079,11 +17084,11 @@ SwScrl_CNZ_2P:
 
 	; Update the background's vertical scrolling.
 	move.w	d0,(Vscroll_Factor_P2_BG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_BG).w
+	subi.w	#224,(Vscroll_Factor_P2_BG).w
 
 	; Update the foreground's vertical scrolling.
 	move.w	(Camera_Y_pos_P2).w,(Vscroll_Factor_P2_FG).w
-	subi.w	#$E0,(Vscroll_Factor_P2_FG).w
+	subi.w	#224,(Vscroll_Factor_P2_FG).w
 
 	; Only allow the screen to vertically scroll two pixels at a time.
 	andi.l	#$FFFEFFFE,(Vscroll_Factor_P2).w
@@ -22747,6 +22752,9 @@ Obj15_State4:
 	neg.w	x_vel(a1)
 +
 	bset	#1,status(a1)
+    if object_size<>$40
+	moveq	#0,d0 ; Clear the high word for the coming division.
+    endif
 	move.w	a0,d0
 	subi.w	#Object_RAM,d0
     if object_size=$40
@@ -22755,6 +22763,9 @@ Obj15_State4:
 	divu.w	#object_size,d0
     endif
 	andi.w	#$7F,d0
+    if object_size<>$40
+	moveq	#0,d1 ; Clear the high word for the coming division.
+    endif
 	move.w	a1,d1
 	subi.w	#Object_RAM,d1
     if object_size=$40
@@ -22979,6 +22990,9 @@ Obj17_MakeHelix:
 	bsr.w	AllocateObjectAfterCurrent
 	bne.s	Obj17_Main
 	addq.b	#1,subtype(a0)
+    if object_size<>$40
+	moveq	#0,d5 ; Clear the high word for the coming division.
+    endif
 	move.w	a1,d5
 	subi.w	#Object_RAM,d5
     if object_size=$40
@@ -27153,9 +27167,9 @@ Obj34_Init:
 
 	move.w	#$26,(TitleCard_Bottom+titlecard_location).w
 	clr.w	(Vscroll_Factor_FG).w
-	move.w	#-$E0,(Vscroll_Factor_P2_FG).w
+	move.w	#-224,(Vscroll_Factor_P2_FG).w
 
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
 
 	rts
 ; ===========================================================================
@@ -35630,6 +35644,9 @@ RideObject_SetRide:
 	bclr	d6,status(a3)
 
 loc_19E30:
+    if object_size<>$40
+	moveq	#0,d0 ; Clear the high word for the coming division.
+    endif
 	move.w	a0,d0
 	subi.w	#Object_RAM,d0
     if object_size=$40
@@ -38979,7 +38996,7 @@ TailsCPU_CheckDespawn:
 	addi.l	#Object_RAM,d0
 	movea.l	d0,a3	; a3=object
 	move.b	(Tails_interact_ID).w,d0
-	cmp.b	(a3),d0
+	cmp.b	id(a3),d0
 	bne.s	BranchTo_TailsCPU_Despawn
 
 ; loc_1BE8C:
@@ -39005,7 +39022,7 @@ TailsCPU_UpdateObjInteract:
     endif
 	addi.l	#Object_RAM,d0
 	movea.l	d0,a3	; a3=object
-	move.b	(a3),(Tails_interact_ID).w
+	move.b	id(a3),(Tails_interact_ID).w
 	rts
 
 ; ===========================================================================
@@ -39824,7 +39841,7 @@ Tails_LevelBound:
 	cmp.w	d1,d0			; has Tails touched the left boundary?
 	bhi.s	Tails_Boundary_Sides	; if yes, branch
 	move.w	(Tails_Max_X_pos).w,d0
-	addi.w	#$128,d0
+	addi.w	#320-24,d0		; screen width - Tails's width_pixels
 	tst.b	(Current_Boss_ID).w
 	bne.s	+
 	addi.w	#$40,d0
@@ -39835,7 +39852,18 @@ Tails_LevelBound:
 ; loc_1C58C:
 Tails_Boundary_CheckBottom:
 	move.w	(Tails_Max_Y_pos).w,d0
-	addi.w	#$E0,d0
+    if fixBugs
+	; The original code does not consider that the camera boundary
+	; may be in the middle of lowering itself, which is why going
+	; down the S-tunnel in Green Hill Zone Act 1 fast enough can
+	; kill Sonic.
+	move.w	(Camera_Max_Y_pos_target).w,d1
+	cmp.w	d0,d1
+	blo.s	.skip
+	move.w	d1,d0
+.skip:
+    endif
+	addi.w	#224,d0
 	cmp.w	y_pos(a0),d0		; has Tails touched the bottom boundary?
 	blt.s	Tails_Boundary_Bottom	; if yes, branch
 	rts
@@ -40596,7 +40624,18 @@ Obj02_Hurt:
 ; loc_1CC08:
 Tails_HurtStop:
 	move.w	(Tails_Max_Y_pos).w,d0
-	addi.w	#$E0,d0
+    if fixBugs
+	; The original code does not consider that the camera boundary
+	; may be in the middle of lowering itself, which is why going
+	; down the S-tunnel in Green Hill Zone Act 1 fast enough can
+	; kill Sonic.
+	move.w	(Camera_Max_Y_pos_target).w,d1
+	cmp.w	d0,d1
+	blo.s	.skip
+	move.w	d1,d0
+.skip:
+    endif
+	addi.w	#224,d0
 	cmp.w	y_pos(a0),d0
 	blt.w	JmpTo2_KillCharacter
 	bsr.w	Tails_DoLevelCollision
@@ -50855,6 +50894,9 @@ loc_25002:
 	bclr	#5,status(a1)
 	bset	#1,status(a1)
 	bset	#3,status(a1)
+    if object_size<>$40
+	moveq	#0,d0 ; Clear the high word for the coming division.
+    endif
 	move.w	a0,d0
 	subi.w	#Object_RAM,d0
     if object_size=$40
@@ -51077,6 +51119,9 @@ loc_252F0:
 	movea.l	d0,a3	; a3=object
 	move.b	#0,(a3,d2.w)
 +
+    if object_size<>$40
+	moveq	#0,d0 ; Clear the high word for the coming division.
+    endif
 	move.w	a0,d0
 	subi.w	#Object_RAM,d0
     if object_size=$40
@@ -55328,6 +55373,9 @@ Obj73_LoadSubObject:
 	jsrto	AllocateObject, JmpTo9_AllocateObject
 	bne.s	Obj73_LoadSubObject_End
 	addq.b	#1,objoff_29(a0)
+    if object_size<>$40
+	moveq	#0,d5 ; Clear the high word for the coming division.
+    endif
 	move.w	a1,d5
 	subi.w	#Object_RAM,d5
     if object_size=$40
@@ -55352,6 +55400,9 @@ Obj73_LoadSubObject:
 ; loc_28AC8:
 Obj73_LoadSubObject_End:
 
+    if object_size<>$40
+	moveq	#0,d5 ; Clear the high word for the coming division.
+    endif
 	move.w	a0,d5
 	subi.w	#Object_RAM,d5
     if object_size=$40
@@ -71330,9 +71381,9 @@ Obj5B_Main:
 	bsr.w	loc_3551C
 	tst.w	x_pos(a0)
 	bmi.w	JmpTo63_DeleteObject
-	cmpi.w	#$100,x_pos(a0)
+	cmpi.w	#256,x_pos(a0) ; Screen width
 	bhs.w	JmpTo63_DeleteObject
-	cmpi.w	#$E0,y_pos(a0)
+	cmpi.w	#224,y_pos(a0) ; Screen height
 	bgt.w	JmpTo63_DeleteObject
 	lea	(Ani_obj5B_obj60).l,a1
 	jsrto	AnimateSprite, JmpTo24_AnimateSprite
@@ -74050,6 +74101,9 @@ Obj95_NextFireball:
 	jsrto	AllocateObjectAfterCurrent, JmpTo25_AllocateObjectAfterCurrent
 	bne.s	loc_371AE
 	addq.b	#1,(a3)
+    if object_size<>$40
+	moveq	#0,d5 ; Clear the high word for the coming division.
+    endif
 	move.w	a1,d5
 	subi.w	#MainCharacter,d5
     if object_size=$40
@@ -77077,8 +77131,8 @@ loc_39182:
 	tst.b	objoff_30(a0)
 	beq.s	+
 	movea.w	objoff_32(a0),a3
-	move.b	#0,$2A(a3)
-	bset	#1,$22(a3)
+	move.b	#0,obj_control(a3)
+	bset	#1,status(a3)
 +
 	moveq	#0,d6
 	move.b	objoff_2D(a0),d6
@@ -78228,7 +78282,7 @@ ObjB0_Init:
 	lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 6)).w,a1
 	lea	Streak_Horizontal_offsets(pc),a2
 	moveq	#0,d0
-	moveq	#$22,d6	; Number of streaks-1
+	moveq	#35-1,d6	; Number of streaks-1
 -	move.b	(a2)+,d0
 	add.w	d0,(a1)
 	addq.w	#2 * 2 * 2,a1	; Advance to next streak 2 pixels down
@@ -78363,11 +78417,11 @@ loc_3A346:
 	bchg	#0,status(a0)
 
     if fixBugs
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+HorizontalScrollBuffer.len
     else
 	; This clears a lot more than the horizontal scroll buffer, which is $400 bytes.
 	; This is because the loop counter is erroneously set to $400, instead of ($400/4)-1.
-	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf_End+$C04
+	clearRAM Horiz_Scroll_Buf,Horiz_Scroll_Buf+(HorizontalScrollBuffer.len*4+4)
     endif
 
 	; Initialize streak horizontal offsets for Sonic going right.
@@ -78375,7 +78429,7 @@ loc_3A346:
 	lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 7)).w,a1
 	lea	Streak_Horizontal_offsets(pc),a2
 	moveq	#0,d0
-	moveq	#$22,d6	; Number of streaks-1
+	moveq	#35-1,d6	; Number of streaks-1
 
 loc_3A38A:
 	move.b	(a2)+,d0
@@ -78457,7 +78511,7 @@ ObjB0_Move_Streaks_Left:
 	; 9 full lines (8 pixels) + 6 pixels, 2-byte interleaved entries for PNT A and PNT B
 	lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 6)).w,a1
 
-	move.w	#$22,d6	; Number of streaks-1
+	move.w	#35-1,d6	; Number of streaks-1
 -	subi.w	#$20,(a1)
 	addq.w	#2 * 2 * 2,a1	; Advance to next streak 2 pixels down
 	dbf	d6,-
@@ -78468,7 +78522,7 @@ ObjB0_Move_Streaks_Right:
 	; 9 full lines (8 pixels) + 7 pixels, 2-byte interleaved entries for PNT A and PNT B
 	lea	(Horiz_Scroll_Buf + 2 * 2 * (9 * 8 + 7)).w,a1
 
-	move.w	#$22,d6	; Number of streaks-1
+	move.w	#35-1,d6	; Number of streaks-1
 -	addi.w	#$20,(a1)
 	addq.w	#2 * 2 * 2,a1	; Advance to next streak 2 pixels down
 	dbf	d6,-
@@ -83008,11 +83062,8 @@ off_3DA34:	offsetTable
 		offsetTableEntry.w return_3DA48	; 2
 ; ===========================================================================
 byte_3DA38:
-	dc.b   0
-	dc.b  $C	; 1
-	dc.b $FF	; 2
-	dc.b $EC	; 3
-	even
+	dc.w   $C
+	dc.w -$14
 ; ===========================================================================
 
 loc_3DA3C:
@@ -83222,11 +83273,8 @@ off_3DBE8:	offsetTable
 		offsetTableEntry.w loc_3DC46	; 8
 ; ===========================================================================
 byte_3DBF2:
-	dc.b   0
-	dc.b   0	; 1
-	dc.b $FF	; 2
-	dc.b $CC	; 3
-	even
+	dc.w    0
+	dc.w -$34
 ; ===========================================================================
 
 loc_3DBF6:
@@ -83237,7 +83285,7 @@ loc_3DBF6:
 
 loc_3DC02:
 	movea.w	(DEZ_Eggman).w,a1
-	btst	#3,$22(a1)
+	btst	#3,status(a1)
 	bne.s	+
 	rts
 ; ---------------------------------------------------------------------------
@@ -83286,11 +83334,8 @@ off_3DC66:	offsetTable
 		offsetTableEntry.w loc_3DC80
 ; ===========================================================================
 byte_3DC70:
-	dc.b   0
-	dc.b $38	; 1
-	dc.b   0	; 2
-	dc.b $18	; 3
-	even
+	dc.w  $38
+	dc.w  $18
 ; ===========================================================================
 
 loc_3DC74:
@@ -83552,11 +83597,8 @@ loc_3DED8:
 	jmpto	DisplaySprite, JmpTo45_DisplaySprite
 ; ===========================================================================
 byte_3DF00:
-	dc.b   0
-	dc.b $38	; 1
-	dc.b $FF	; 2
-	dc.b $EC	; 3
-	even
+	dc.w  $38
+	dc.w -$14
 ; ===========================================================================
 
 loc_3DF04:
