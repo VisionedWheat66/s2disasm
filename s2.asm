@@ -4182,7 +4182,7 @@ TitleScreen:
 	bsr.w	ClearScreen
 
 	; Reset a bunch of engine state.
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End ; fill $AC00-$AFFF with $0
+	clearRAM Object_Display_Lists,Object_Display_Lists_End ; fill $AC00-$AFFF with $0
 	clearRAM Object_RAM,Object_RAM_End ; fill object RAM ($B000-$D5FF) with $0
 	clearRAM Misc_Variables,Misc_Variables_End ; clear CPU player RAM and following variables
 	clearRAM Camera_RAM,Camera_RAM_End ; clear camera RAM and following variables
@@ -4707,7 +4707,7 @@ Level:
 	bsr.w	LoadPLC
 ; loc_3F48:
 Level_ClrRam:
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,LevelOnly_Object_RAM_End ; clear object RAM and level-only object RAM
 	clearRAM MiscLevelVariables,MiscLevelVariables_End
 	clearRAM Misc_Variables,Misc_Variables_End
@@ -5182,12 +5182,12 @@ MoveWater:
 	bhs.s	+
 	tst.w	d0
 	bpl.s	+
-	move.b	#$DF,(Hint_counter_reserve+1).w	; H-INT every 224th scanline
+	move.b	#224-1,(Hint_counter_reserve+1).w	; H-INT every 224th scanline
 	move.b	#1,(Water_fullscreen_flag).w
 +
-	cmpi.w	#$DF,d0
+	cmpi.w	#224-1,d0
 	blo.s	+
-	move.w	#$DF,d0
+	move.w	#224-1,d0
 +
 	move.b	d0,(Hint_counter_reserve+1).w	; H-INT every d0 scanlines
 ; loc_456A:
@@ -6522,7 +6522,7 @@ SpecialStage:
 	clearRAM SS_Horiz_Scroll_Buf_1,SS_Horiz_Scroll_Buf_1+HorizontalScrollBuffer.len+4
 	clearRAM SS_Shared_RAM,SS_Shared_RAM_End+4
     endif
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,Object_RAM_End
 
     if fixBugs
@@ -6715,7 +6715,7 @@ SpecialStage:
 	move.w	#MusID_EndLevel,d0
 	jsr	(PlaySound).l
 
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,Object_RAM_End
 
 	move.b	#ObjID_SSResults,(SpecialStageResults+id).w ; load Obj6F (special stage results) at $FFFFB800
@@ -9435,7 +9435,7 @@ Obj5E:
     if fixBugs
 	; See below.
 	beq.s	+
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
 +
     else
@@ -9859,7 +9859,7 @@ loc_7536:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo_DisplaySprite
@@ -9916,7 +9916,7 @@ loc_753E:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo_DisplaySprite
@@ -9930,7 +9930,7 @@ loc_753E:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo_DisplaySprite
@@ -9946,7 +9946,7 @@ loc_753E:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo_DisplaySprite
@@ -10000,7 +10000,7 @@ loc_75DE:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*0,d0
+	move.w	#object_display_list_size*0,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo_DisplaySprite
@@ -10455,9 +10455,9 @@ ObjDA_Init:
 	move.w	#make_art_tile(ArtTile_ArtNem_ContinueText,0,1),art_tile(a0)
 	jsrto	Adjust2PArtPointer, JmpTo_Adjust2PArtPointer
 	move.b	#0,render_flags(a0)
-	move.b	#$3C,width_pixels(a0)
-	move.w	#$120,x_pixel(a0)
-	move.w	#$C0,y_pixel(a0)
+	move.b	#60,width_pixels(a0)
+	move.w	#$80+320/2,x_pixel(a0)
+	move.w	#$80+64,y_pixel(a0)
 
 JmpTo2_DisplaySprite ; JmpTo
 	jmp	(DisplaySprite).l
@@ -10676,7 +10676,7 @@ TwoPlayerResults:
 	move.w	#$8C81,(a6)		; H res 40 cells, no interlace, S/H disabled
 	move.w	#$9001,(a6)		; Scroll table size: 64x32
 
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,Object_RAM_End
 
 	move.l	#vdpComm(tiles_to_bytes(ArtTile_ArtNem_FontStuff),VRAM,WRITE),(VDP_control_port).l
@@ -11044,7 +11044,7 @@ Setup2PResults_Act:
 	bsr.w	sub_86B0
 	move.w	#$3FA,d2
 	moveq	#0,d1
-	move.b	(Timer_centisecond_2P).w,d1
+	move.b	(Timer_frame_2P).w,d1
 	mulu.w	#$1B0,d1
 	lsr.l	#8,d1
 	bsr.w	sub_86B0
@@ -11694,7 +11694,7 @@ MenuScreen:
 	move.w	#$8C81,(a6)		; H res 40 cells, no interlace, S/H disabled
 	move.w	#$9001,(a6)		; Scroll table size: 64x32
 
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,Object_RAM_End
 
 	; load background + graphics of font/LevSelPics
@@ -13120,7 +13120,7 @@ EndgameCredits:
 	move.w	#$8C81,(a6)		; H res 40 cells, no interlace, S/H disabled
 	jsrto	ClearScreen, JmpTo_ClearScreen
 
-	clearRAM Sprite_Table_Input,Sprite_Table_Input_End
+	clearRAM Object_Display_Lists,Object_Display_Lists_End
 	clearRAM Object_RAM,Object_RAM_End
 	clearRAM Misc_Variables,Misc_Variables_End
 	clearRAM Camera_RAM,Camera_RAM_End
@@ -18129,12 +18129,12 @@ ScrollVerti:
 	bne.s	.scrollUpOrDown_maxYPosChanging	; if it is, branch
 ; loc_D7C0:
 .doNotScroll:
-	clr.w	(a4)		; clear Y position difference (Camera_Y_pos_bias)
+	clr.w	(a4)		; clear Y position difference (Camera_Y_pos_diff)
 	rts
 ; ===========================================================================
 ; loc_D7C4:
 .decideScrollType:
-	cmpi.w	#(224/2)-16,d3		; is the camera bias normal?
+	cmpi.w	#(224/2)-16,d3	; is the camera bias normal?
 	bne.s	.doScroll_slow	; if not, branch
 	mvabs.w	inertia(a0),d1	; get player ground velocity, force it to be positive
 	cmpi.w	#$800,d1	; is the player travelling very fast?
@@ -21891,7 +21891,7 @@ Obj11:
 	jmp	Obj11_Index(pc,d1.w)
 ; ===========================================================================
 +	; child sprite objects only need to be drawn
-	move.w	#$180,d0
+	move.w	#object_display_list_size*3,d0
 	bra.w	DisplaySprite3
 ; ===========================================================================
 ; off_F68C:
@@ -22413,7 +22413,7 @@ Obj15:
 	jmp	Obj15_Index(pc,d1.w)
 ; ---------------------------------------------------------------------------
 +
-	move.w	#$200,d0
+	move.w	#object_display_list_size*4,d0
 	bra.w	DisplaySprite3
 ; ===========================================================================
 ; off_FCBC: Obj15_States:
@@ -22669,7 +22669,7 @@ loc_FF6E:
 	move.w	#0,objoff_3E(a0)
 	move.w	#$8000,angle(a0)
 	move.b	#0,objoff_3D(a0)
-	move.w	#$3C,objoff_36(a0)
+	move.w	#60,objoff_36(a0)
 	bra.s	loc_10006
 ; ===========================================================================
 +
@@ -22683,7 +22683,7 @@ loc_FF6E:
 	move.w	#$4000,angle(a0)
 	move.b	#1,objoff_3D(a0)
 ; loc_10000:
-	move.w	#$3C,objoff_36(a0)
+	move.w	#60,objoff_36(a0)
 
 loc_10006:
 	move.b	angle(a0),d0
@@ -23414,7 +23414,7 @@ loc_10778:
 	lsr.w	#4,d0
 	tst.b	(a2,d0.w)
 	beq.s	+	; rts
-	move.w	#$3C,objoff_3A(a0)
+	move.w	#60,objoff_3A(a0)
 /
 	rts
 ; ===========================================================================
@@ -27771,7 +27771,7 @@ loc_14220:
 	move.l	#Obj3A_MapUnc_14CBC,mappings(a1)
 	bsr.w	Adjust2PArtPointer2
 	move.b	#0,render_flags(a1)
-	move.w	#$3C,anim_frame_duration(a1)
+	move.w	#60,anim_frame_duration(a1)
 	addq.b	#1,(Continue_count).w
 
 return_14254:
@@ -29272,7 +29272,7 @@ MoveSpikes_ChkDir:
 	bhs.s	+	; rts			; branch, if offset is not yet 0
 	move.w	#0,spikes_retract_offset(a0)
 	move.w	#0,spikes_retract_state(a0)	; switch state
-	move.w	#$3C,spikes_retract_timer(a0)	; reset timer
+	move.w	#60,spikes_retract_timer(a0)	; reset timer
 	bra.s	+	; rts
 ; ===========================================================================
 ; loc_15B46:
@@ -29282,7 +29282,7 @@ MoveSpikes_Retract:
 	blo.s	+	; rts				; if not, branch
 	move.w	#$2000,spikes_retract_offset(a0)
 	move.w	#1,spikes_retract_state(a0)	; switch state
-	move.w	#$3C,spikes_retract_timer(a0)	; reset timer
+	move.w	#60,spikes_retract_timer(a0)	; reset timer
 +
 	rts
 ; End of function MoveSpikes_Delay
@@ -29570,7 +29570,7 @@ RunObjectDisplayOnly:
 	; If this is a multi-sprite object, then we cannot use its 'priority'
 	; value to display it as it's being used for coordinate data.
 	; In theory, this means that calls to 'DisplaySprite' here could
-	; overflow the 'Sprite_Table_Input' buffer and write to 'Object_RAM'
+	; overflow the 'Object_Display_Lists' buffer and write to 'Object_RAM'
 	; instead, which could be quite disasterous. However, I don't think
 	; it's possible for an object to have a Y coordinate higher than
 	; $7FF, so, in practice, the overflow never occurs. Still, it can
@@ -29584,7 +29584,7 @@ RunObjectDisplayOnly:
 	pea	+(pc)	; This is an optimisation to avoid the need for extra branches: it makes it so '+' will be executed after 'DisplaySprite' or 'DisplaySprite3' return.
 	btst	#6,render_flags(a0)	; Is this a multi-sprite object?
 	beq.w	DisplaySprite		; If not, display using the object's 'priority' value.
-	move.w	#$80*4,d0		; If not, display using a hardcoded priority of 4.
+	move.w	#object_display_list_size*4,d0		; If not, display using a hardcoded priority of 4.
 	bra.w	DisplaySprite3
     else
 	bsr.w	DisplaySprite
@@ -30052,18 +30052,18 @@ DeleteObject2:
 
 ; sub_164F4:
 DisplaySprite:
-	lea	(Sprite_Table_Input).w,a1
+	lea	(Object_Display_Lists).w,a1
 	move.w	priority(a0),d0
-	lsr.w	#1,d0
-	andi.w	#$380,d0
+	lsr.w	#8-object_display_list_size_bits,d0
+	andi.w	#(1<<total_object_display_lists_bits-1)<<object_display_list_size_bits,d0
 	adda.w	d0,a1
-	cmpi.w	#$7E,(a1)
-	bhs.s	return_16510
+	cmpi.w	#object_display_list_size-2,(a1)
+	bhs.s	.return
 	addq.w	#2,(a1)
 	adda.w	(a1),a1
 	move.w	a0,(a1)
 
-return_16510:
+.return:
 	rts
 ; End of function DisplaySprite
 
@@ -30075,37 +30075,37 @@ return_16510:
 
 ; sub_16512:
 DisplaySprite2:
-	lea	(Sprite_Table_Input).w,a2
+	lea	(Object_Display_Lists).w,a2
 	move.w	priority(a1),d0
-	lsr.w	#1,d0
-	andi.w	#$380,d0
+	lsr.w	#8-object_display_list_size_bits,d0
+	andi.w	#(1<<total_object_display_lists_bits-1)<<object_display_list_size_bits,d0
 	adda.w	d0,a2
-	cmpi.w	#$7E,(a2)
-	bhs.s	return_1652E
+	cmpi.w	#object_display_list_size-2,(a2)
+	bhs.s	.return
 	addq.w	#2,(a2)
 	adda.w	(a2),a2
 	move.w	a1,(a2)
 
-return_1652E:
+.return:
 	rts
 ; End of function DisplaySprite2
 
 ; ---------------------------------------------------------------------------
 ; Subroutine to display a sprite/object, when a0 is the object RAM
-; and d0 is already (priority/2)&$380
+; and d0 is already priority*$80
 ; ---------------------------------------------------------------------------
 
 ; loc_16530:
 DisplaySprite3:
-	lea	(Sprite_Table_Input).w,a1
+	lea	(Object_Display_Lists).w,a1
 	adda.w	d0,a1
-	cmpi.w	#$7E,(a1)
-	bhs.s	return_16542
+	cmpi.w	#object_display_list_size-2,(a1)
+	bhs.s	.return
 	addq.w	#2,(a1)
 	adda.w	(a1),a1
 	move.w	a0,(a1)
 
-return_16542:
+.return:
 	rts
 
 ; ---------------------------------------------------------------------------
@@ -30225,8 +30225,8 @@ BuildSprites:
 	jsrto	BuildHUD, JmpTo_BuildHUD
 	bsr.w	BuildRings
 +
-	lea	(Sprite_Table_Input).w,a4
-	moveq	#7,d7	; 8 priority levels
+	lea	(Object_Display_Lists).w,a4
+	moveq	#total_object_display_lists-1,d7	; 8 priority levels
 ; loc_16628:
 BuildSprites_LevelLoop:
 	tst.w	(a4)	; does this level have any objects?
@@ -30326,7 +30326,7 @@ BuildSprites_NextObj:
 	bne.w	BuildSprites_ObjLoop	; if there are objects left, repeat
 ; loc_166FA:
 BuildSprites_NextLevel:
-	lea	$80(a4),a4	; load next priority level
+	lea	object_display_list_size(a4),a4	; load next priority level
 	dbf	d7,BuildSprites_LevelLoop	; loop
 	move.b	d5,(Sprite_count).w
 	; Terminate the sprite list.
@@ -30704,8 +30704,8 @@ BuildSprites_2P:
 	jsrto	BuildHUD_P1, JmpTo_BuildHUD_P1
 	bsr.w	BuildRings_P1
 +
-	lea	(Sprite_Table_Input).w,a4
-	moveq	#7,d7
+	lea	(Object_Display_Lists).w,a4
+	moveq	#total_object_display_lists-1,d7
 ; loc_16982:
 BuildSprites_P1_LevelLoop:
 	move.w	(a4),d0	; does this priority level have any objects?
@@ -30799,7 +30799,7 @@ BuildSprites_P1_NextObj:
 	addq.w	#2,sp
 ; loc_16A5A:
 BuildSprites_P1_NextLevel:
-	lea	$80(a4),a4
+	lea	object_display_list_size(a4),a4
 	dbf	d7,BuildSprites_P1_LevelLoop
 	move.b	d5,(Sprite_count).w
 	; Terminate the sprite list.
@@ -30842,8 +30842,8 @@ BuildSprites_P2:
 	jsrto	BuildHUD_P2, JmpTo_BuildHUD_P2
 	bsr.w	BuildRings_P2
 +
-	lea	(Sprite_Table_Input).w,a4
-	moveq	#7,d7
+	lea	(Object_Display_Lists).w,a4
+	moveq	#total_object_display_lists-1,d7
 ; loc_16A9C:
 BuildSprites_P2_LevelLoop:
 	move.w	(a4),d0
@@ -30939,7 +30939,7 @@ BuildSprites_P2_NextObj:
 	move.w	#0,(a4)
 ; loc_16B78:
 BuildSprites_P2_NextLevel:
-	lea	$80(a4),a4
+	lea	object_display_list_size(a4),a4
 	dbf	d7,BuildSprites_P2_LevelLoop
 
     if fixBugs
@@ -34484,7 +34484,7 @@ Obj0D_Main_StateNull:
 Obj0D_Main_State2:
 	subq.w	#1,obj0D_spinframe(a0)
 	bpl.s	loc_19398
-	move.w	#$3C,obj0D_spinframe(a0)
+	move.w	#60,obj0D_spinframe(a0)
 	addq.b	#1,anim(a0)
 	cmpi.b	#3,anim(a0)
 	bne.s	loc_19398
@@ -34587,12 +34587,12 @@ Load_EndOfAct:
 	move.b	#1,(Update_Bonus_score).w
 	moveq	#0,d0
 	move.b	(Timer_minute).w,d0
-	mulu.w	#$3C,d0
+	mulu.w	#60,d0
 	moveq	#0,d1
 	move.b	(Timer_second).w,d1
 	add.w	d1,d0
-	divu.w	#$F,d0
-	moveq	#$14,d1
+	divu.w	#15,d0
+	moveq	#(TimeBonuses_End-TimeBonuses)/2-1,d1
 	cmp.w	d1,d0
 	blo.s	+
 	move.w	d1,d0
@@ -34619,6 +34619,7 @@ TimeBonuses:
 	dc.w 5000, 5000, 1000, 500, 400, 400, 300, 300
 	dc.w  200,  200,  200, 200, 100, 100, 100, 100
 	dc.w   50,   50,   50,  50,   0
+TimeBonuses_End:
 ; ===========================================================================
 ; loc_194FC:
 Obj0D_Main_State4:
@@ -35273,6 +35274,11 @@ SolidObject_Squash:
 	blo.w	SolidObject_LeftRight
 
 	move.l	a0,-(sp)
+    if fixBugs
+	; a2 needs to be set here, otherwise KillCharacter
+	; will access a dangling pointer!
+	movea.l	a0,a2
+    endif
 	movea.l	a1,a0
 	jsr	(KillCharacter).l
 	movea.l	(sp)+,a0 ; load 0bj address
@@ -36880,6 +36886,11 @@ Sonic_Boundary_CheckBottom:
 	rts
 ; ---------------------------------------------------------------------------
 Sonic_Boundary_Bottom: ;;
+    if fixBugs
+	; a2 needs to be set here, otherwise KillCharacter
+	; will access a dangling pointer!
+	movea.l	a0,a2
+    endif
 	jmpto	KillCharacter, JmpTo_KillCharacter
 ; ===========================================================================
 
@@ -37767,6 +37778,11 @@ Obj01_Hurt_Normal:
 ; ===========================================================================
 ; loc_1B184:
 Sonic_HurtStop:
+    if fixBugs
+	; a2 needs to be set here, otherwise KillCharacter
+	; will access a dangling pointer!
+	movea.l	a0,a2
+    endif
 	move.w	(Camera_Max_Y_pos).w,d0
     if fixBugs
 	; The original code does not consider that the camera boundary
@@ -39869,6 +39885,11 @@ Tails_Boundary_CheckBottom:
 	rts
 ; ---------------------------------------------------------------------------
 Tails_Boundary_Bottom: ;;
+    if fixBugs
+	; a2 needs to be set here, otherwise KillCharacter
+	; will access a dangling pointer!
+	movea.l	a0,a2
+    endif
 	jmpto	KillCharacter, JmpTo2_KillCharacter
 ; ===========================================================================
 
@@ -40623,6 +40644,11 @@ Obj02_Hurt:
 ; ===========================================================================
 ; loc_1CC08:
 Tails_HurtStop:
+    if fixBugs
+	; a2 needs to be set here, otherwise KillCharacter
+	; will access a dangling pointer!
+	movea.l	a0,a2
+    endif
 	move.w	(Tails_Max_Y_pos).w,d0
     if fixBugs
 	; The original code does not consider that the camera boundary
@@ -42061,7 +42087,7 @@ loc_1DA44:
 
 loc_1DA74:
 	add.b	d0,objoff_34(a0)
-	move.w	#$80,d0
+	move.w	#object_display_list_size*1,d0
 	bra.w	DisplaySprite3
 ; ===========================================================================
 
@@ -42134,7 +42160,7 @@ loc_1DAE4:
 
 loc_1DB20:
 	add.b	d0,objoff_34(a0)
-	move.w	#$80,d0
+	move.w	#object_display_list_size*1,d0
 	bra.w	DisplaySprite3
 ; ===========================================================================
 
@@ -46906,7 +46932,7 @@ Obj06_Cylinder:
 	cmpi.w	#$C0,d0
 	bge.s	return_2188A
 	move.w	y_pos(a0),d0
-	addi.w	#$3C,d0
+	addi.w	#60,d0
 	move.w	y_pos(a1),d2
 	move.b	y_radius(a1),d1
 	ext.w	d1
@@ -55536,7 +55562,7 @@ Obj75:
 	jmp	Obj75_Index(pc,d1.w)
 ; ===========================================================================
 +
-	move.w	#$280,d0
+	move.w	#object_display_list_size*5,d0
 	jmpto	DisplaySprite3, JmpTo_DisplaySprite3
 ; ===========================================================================
 ; off_28BE8:
@@ -56095,7 +56121,7 @@ loc_292EC:
 	move.b	objoff_2E(a0),d0
 	andi.b	#touch_bottom_mask,d0
 	beq.s	return_29302
-	move.w	#$3C,objoff_2C(a0)
+	move.w	#60,objoff_2C(a0)
 
 return_29302:
 	rts
@@ -56649,10 +56675,10 @@ Obj7F_Action:
 	beq.w	return_29936
 	clr.b	obj_control(a1)
 	clr.b	(a2)
-	move.b	#$12,2(a2)
+	move.b	#18,2(a2)
 	andi.w	#(button_up_mask|button_down_mask|button_left_mask|button_right_mask)<<8,d0
 	beq.s	+
-	move.b	#$3C,2(a2)
+	move.b	#60,2(a2)
 +
 	move.w	#-$300,y_vel(a1)
 	move.b	subtype(a0),d0
@@ -56865,10 +56891,10 @@ Obj80_Action:
 	beq.w	loc_29B50
 	clr.b	obj_control(a1)
 	clr.b	(a2)
-	move.b	#$12,2(a2)
+	move.b	#18,2(a2)
 	andi.w	#(button_up_mask|button_down_mask|button_left_mask|button_right_mask)<<8,d0
 	beq.w	+
-	move.b	#$3C,2(a2)
+	move.b	#60,2(a2)
 +
 	btst	#(button_left+8),d0
 	beq.s	+
@@ -56894,7 +56920,7 @@ Obj80_Action:
 loc_29B42:
 	clr.b	obj_control(a1)
 	clr.b	(a2)
-	move.b	#$3C,2(a2)
+	move.b	#60,2(a2)
 	rts
 ; ===========================================================================
 
@@ -57032,7 +57058,7 @@ Obj81:
 	jmp	Obj81_Index(pc,d1.w)
 ; ===========================================================================
 +
-	move.w	#$280,d0
+	move.w	#object_display_list_size*5,d0
 	jmpto	DisplaySprite3, JmpTo2_DisplaySprite3
 ; ===========================================================================
 ; off_2A020:
@@ -57528,7 +57554,7 @@ Obj83:
 	jmp	Obj83_Index(pc,d1.w)
 ; ===========================================================================
 .isMultispriteObject:
-	move.w	#$280,d0
+	move.w	#object_display_list_size*5,d0
 	jmpto	DisplaySprite3, JmpTo3_DisplaySprite3
 ; ===========================================================================
 ; off_2A51C:
@@ -58038,7 +58064,7 @@ Obj85:
 	move.b	routine(a0),d0
 	move.w	Obj85_Index(pc,d0.w),d1
 	jsr	Obj85_Index(pc,d1.w)
-	move.w	#$200,d0
+	move.w	#object_display_list_size*4,d0
 	tst.w	(Two_player_mode).w
 	beq.s	+
 	jmpto	DisplaySprite3, JmpTo4_DisplaySprite3
@@ -60564,10 +60590,10 @@ ObjD9_CheckCharacter:
 	beq.w	ObjD9_CheckCharacter_End
 	clr.b	obj_control(a1)
 	clr.b	(a2)
-	move.b	#$12,2(a2)
+	move.b	#18,2(a2)
 	andi.w	#(button_up_mask|button_down_mask|button_left_mask|button_right_mask)<<8,d0
 	beq.s	+
-	move.b	#$3C,2(a2)
+	move.b	#60,2(a2)
 +
 	move.w	#-$300,y_vel(a1)
 	bra.w	ObjD9_CheckCharacter_End
@@ -60739,7 +60765,7 @@ Obj4A_MoveUp:
 ; ===========================================================================
 +
 	addq.b	#2,routine_secondary(a0)
-	move.w	#$3C,objoff_2C(a0)
+	move.w	#60,objoff_2C(a0)
 	bra.w	Obj4A_FireBullet
 ; ===========================================================================
 ; loc_2CB3A:
@@ -63855,7 +63881,7 @@ loc_2F2BA:	; Obj56_VehicleMain_Sub2_0:
 loc_2F2CC:
 	addq.b	#2,objoff_2C(a0)	; tertiary routine
 	bset	#0,objoff_2D(a0)	; Robotnik on ground (relevant for propeller)
-	move.w	#$3C,objoff_2A(a0)	; timer for standing still
+	move.w	#60,objoff_2A(a0)	; timer for standing still
 	bra.w	JmpTo35_DisplaySprite
 ; ---------------------------------------------------------------------------
 
@@ -65370,7 +65396,7 @@ Obj89_Main_Sub0_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65406,7 +65432,7 @@ Obj89_Main_Sub2_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65438,7 +65464,7 @@ Obj89_Main_Sub4_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65476,7 +65502,7 @@ Obj89_Main_Sub6_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65625,7 +65651,7 @@ Obj89_Main_Sub8_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65679,7 +65705,7 @@ Obj89_Main_SubA_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -65713,7 +65739,7 @@ Obj89_Main_SubC_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*2,d0
+	move.w	#object_display_list_size*2,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo37_DisplaySprite
@@ -66312,7 +66338,7 @@ Obj57_Main_Sub0_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66339,7 +66365,7 @@ Obj57_Main_Sub2_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66386,7 +66412,7 @@ Obj57_Main_Sub4_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66449,7 +66475,7 @@ Obj57_Main_Sub6_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66634,7 +66660,7 @@ Obj57_Main_Sub8_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66695,7 +66721,7 @@ Obj57_Main_SubA_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -66727,7 +66753,7 @@ Obj57_Main_SubC_Standard:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo38_DisplaySprite
@@ -67092,7 +67118,7 @@ JmpTo39_DisplaySprite ; JmpTo
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo39_DisplaySprite
@@ -67238,7 +67264,7 @@ loc_31DB8:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo39_DisplaySprite
@@ -67289,7 +67315,7 @@ loc_31E0E:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo39_DisplaySprite
@@ -67322,7 +67348,7 @@ loc_31E4A:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo39_DisplaySprite
@@ -67372,7 +67398,7 @@ loc_31EAE:
 	move.w	#0,objoff_2E(a0)
 
 loc_31EE8:
-	cmpi.w	#$3C,(Boss_Countdown).w
+	cmpi.w	#60,(Boss_Countdown).w
 	bgt.s	return_31F22
 	addi_.w	#1,sub2_x_pos(a0)
 	move.l	objoff_34(a0),d0
@@ -67714,7 +67740,7 @@ Obj54_MainSub0:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo40_DisplaySprite
@@ -67771,7 +67797,7 @@ Obj54_Display:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo40_DisplaySprite
@@ -68059,7 +68085,7 @@ Obj54_AnimateFace:
 ;loc_32802
 Obj54_MainSub10:
 	subq.w	#1,(Boss_Countdown).w
-	cmpi.w	#$3C,(Boss_Countdown).w
+	cmpi.w	#60,(Boss_Countdown).w
 	blo.s	++
 	bmi.s	+
 	bsr.w	Boss_LoadExplosion
@@ -68087,7 +68113,7 @@ Obj54_MainSub10:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo40_DisplaySprite
@@ -68123,7 +68149,7 @@ Obj54_MainSub12:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo40_DisplaySprite
@@ -68800,7 +68826,7 @@ Obj55_Main_End:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -68840,7 +68866,7 @@ Obj55_Main_Defeated:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -68854,7 +68880,7 @@ Obj55_Explode:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -68890,7 +68916,7 @@ Obj55_Defeated_Sink:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -69057,7 +69083,7 @@ Obj55_LaserShooter_End:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -69187,7 +69213,7 @@ Obj55_SpikeChain_End:
 	; must use 'DisplaySprite3' instead of 'DisplaySprite'.
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
-	move.w	#$80*3,d0
+	move.w	#object_display_list_size*3,d0
 	jmp	(DisplaySprite3).l
     else
 	jmpto	DisplaySprite, JmpTo41_DisplaySprite
@@ -71692,7 +71718,7 @@ Obj5A_FlashMessage:
 	; This object's 'priority' is overwritten by 'sub3_y_pos', causing it
 	; to display on the wrong layer.
 	bhs.s	+
-	move.w	#$80*1,d0
+	move.w	#object_display_list_size*1,d0
 	jmp	(DisplaySprite3).l
     else
 	blo.w	JmpTo44_DisplaySprite
@@ -75468,7 +75494,7 @@ loc_37EFC:
 	dbf	d6,-
 
 loc_37F6C:
-	move.w	#$280,d0
+	move.w	#object_display_list_size*5,d0
 	jmpto	DisplaySprite3, JmpTo5_DisplaySprite3
 ; ===========================================================================
 
@@ -77561,7 +77587,7 @@ loc_397AC:
 
 loc_397BA:
 	addq.b	#2,routine(a0)
-	move.w	#$3C,objoff_2A(a0)
+	move.w	#60,objoff_2A(a0)
 	move.w	#$100,y_vel(a0)
 	move.w	#$224,d0
 	move.w	d0,(Camera_Min_X_pos).w
@@ -77867,7 +77893,7 @@ loc_39ABC:
 
 loc_39ACE:
 	subq.b	#1,objoff_2A(a0)
-	cmpi.b	#$3C,objoff_2A(a0)
+	cmpi.b	#60,objoff_2A(a0)
 	bne.s	loc_39ADE
 	bsr.w	loc_39AE8
 
@@ -80900,7 +80926,7 @@ ObjC1_Init:
 	bsr.w	LoadSubObject_Part2
 	moveq	#0,d0
 	move.b	subtype(a0),d0
-	mulu.w	#$3C,d0
+	mulu.w	#60,d0
 	move.w	d0,objoff_30(a0)
 
 ObjC1_Main:
@@ -82578,7 +82604,7 @@ loc_3D5A8:
 ; ---------------------------------------------------------------------------
 +
 	addq.b	#2,routine_secondary(a0)
-	move.b	#$3C,anim_frame_duration(a0)
+	move.b	#60,anim_frame_duration(a0)
 	moveq	#signextendB(MusID_FadeOut),d0
 	jmpto	PlaySound, JmpTo12_PlaySound
 ; ===========================================================================
@@ -83695,7 +83721,7 @@ ObjC7_CheckHit:
 	subq.b	#1,collision_property(a0)
 	beq.s	ObjC7_Beaten
 +
-	move.b	#$3C,objoff_2A(a0)
+	move.b	#60,objoff_2A(a0)
 	move.w	#SndID_BossHit,d0
 	jsr	(PlaySound).l
 ;loc_3E02E
@@ -87803,7 +87829,7 @@ Hud_ChkTime:
 	tst.w	(Game_paused).w	; is the game paused?
 	bne.s	Hud_ChkLives	; if yes, branch
 	lea	(Timer).w,a1
-	cmpi.l	#$93B3B,(a1)+	; is the time 9.59?
+	cmpi.l	#(9<<(8*2))|(59<<(8*1))|(59<<(8*0)),(a1)+	; is the time 9.59?
 	beq.w	loc_40E84	; if yes, branch
 	addq.b	#1,-(a1)
 	cmpi.b	#60,(a1)
@@ -87911,14 +87937,14 @@ loc_40F18:
 	tst.w	(Game_paused).w
 	bne.s	return_40F4E
 	lea	(Timer).w,a1
-	cmpi.l	#$93B3B,(a1)+
+	cmpi.l	#(9<<(8*2))|(59<<(8*1))|(59<<(8*0)),(a1)+
 	nop			; You can't get a Time Over in Debug Mode, so this branch is dummied-out
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	return_40F4E
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	return_40F4E
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
@@ -87936,14 +87962,14 @@ loc_40F50:
 	tst.b	(Update_HUD_timer).w
 	beq.s	loc_40F90
 	lea	(Timer).w,a1
-	cmpi.l	#$93B3B,(a1)+
+	cmpi.l	#(9<<(8*2))|(59<<(8*1))|(59<<(8*0)),(a1)+
 	beq.w	TimeOver
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	loc_40F90
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	loc_40F90
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
@@ -87955,14 +87981,14 @@ loc_40F90:
 	tst.b	(Update_HUD_timer_2P).w
 	beq.s	loc_40FC8
 	lea	(Timer_2P).w,a1
-	cmpi.l	#$93B3B,(a1)+
+	cmpi.l	#(9<<(8*2))|(59<<(8*1))|(59<<(8*0)),(a1)+
 	beq.w	TimeOver2
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	loc_40FC8
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
-	cmpi.b	#$3C,(a1)
+	cmpi.b	#60,(a1)
 	blo.s	loc_40FC8
 	move.b	#0,(a1)
 	addq.b	#1,-(a1)
@@ -87991,8 +88017,8 @@ loc_40FE4:
 	beq.s	return_4101A
 	subq.b	#1,-(a1)
 	bhi.s	return_4101A
-	move.b	#$3C,(a1)
-	cmpi.b	#$C,-1(a1)
+	move.b	#60,(a1)
+	cmpi.b	#12,-1(a1)
 	bne.s	loc_41010
 	move.w	#MusID_Countdown,d0
 	jsr	(PlayMusic).l
