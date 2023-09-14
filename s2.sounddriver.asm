@@ -254,14 +254,14 @@ SFX_PSG_TRACK_COUNT = (zSFX_PSGEnd-zSFX_PSGStart)/zTrack.len
 ; the start of zROMWindow points to the start of the given 68k address,
 ; rounded down to the nearest $8000 byte boundary
 bankswitch macro addr68k
-    if OptimiseDriver=1
+    if OptimiseDriver
 	; Because why use a and e when you can use h and l?
 	ld	hl,zBankRegister+1	; +1 so that 6000h becomes 6001h, which is still a valid bankswitch port
 .cnt	:= 0
 	rept 9
 		; this is either ld (hl),h or ld (hl),l
-		db (74h|(((addr68k)&(1<<(15+.cnt)))<>0))
-.cnt		:= (.cnt+1)
+		db 74h|(((addr68k)&(1<<(15+.cnt)))<>0)
+.cnt		:= .cnt+1
 	endm
     else
 	xor	a	; a = 0
@@ -270,8 +270,8 @@ bankswitch macro addr68k
 .cnt	:= 0
 	rept 9
 		; this is either ld (hl),a or ld (hl),e
-		db (73h|((((addr68k)&(1<<(15+.cnt)))==0)<<2))
-.cnt		:= (.cnt+1)
+		db 73h|((((addr68k)&(1<<(15+.cnt)))=0)<<2)
+.cnt		:= .cnt+1
 	endm
     endif
     endm
@@ -308,6 +308,9 @@ endpad := $
 ; assuming the correct bank has been switched to first
 zmake68kPtr function addr,zROMWindow+(addr&7FFFh)
 
+; Function to turn a sample rate into a djnz loop counter
+pcmLoopCounter function sampleRate,baseCycles, 1+(53693175/15/(sampleRate)-(baseCycles)+(13/2))/13
+
 
 ; >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Z80 'ROM' start:
@@ -321,7 +324,7 @@ zPalModeByte:
 	db	0
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
-    if OptimiseDriver=0	; This is redundant: the Z80 is slow enough to not need to worry about this
+    if ~~OptimiseDriver	; This is redundant: the Z80 is slow enough to not need to worry about this
 	align	8
 ; zsub_8
 zFMBusyWait:    rsttarget
@@ -347,14 +350,14 @@ zWriteFMIorII:    rsttarget
 ; zsub_18
 zWriteFMI:    rsttarget
 	; Write reg/data pair to part I; 'a' is register, 'c' is data
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	push	af
 	rst	zFMBusyWait ; 'rst' is like 'call' but only works for 8-byte aligned addresses <= 38h
 	pop	af
     endif
 	ld	(zYM2612_A0),a
 	push	af
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	rst	zFMBusyWait
     endif
 	ld	a,c
@@ -368,14 +371,14 @@ zWriteFMI:    rsttarget
 ; zsub_28
 zWriteFMII:    rsttarget
 	; Write reg/data pair to part II; 'a' is register, 'c' is data
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	push	af
 	rst	zFMBusyWait
 	pop	af
     endif
 	ld	(zYM2612_A1),a
 	push	af
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	rst	zFMBusyWait
     endif
 	ld	a,c
@@ -538,7 +541,7 @@ zDACStoreDelay:
 
 ; zsub_110
 zUpdateMusic:
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; Calling this function here is bad, because it can cause the
 	; first note of a newly-started song to be delayed for a frame.
 	; The vanilla driver resorts to a workaround to prevent such a
@@ -577,7 +580,7 @@ zUpdateMusic:
 	pop	bc
 	djnz	.psgloop
 
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; See above. Removing this instruction will cause this
 	; subroutine to fall-through to TempoWait.
 	ret
@@ -641,9 +644,9 @@ zStartDAC:
 
 ; zloc_174:
 zWaitLoop:
-	ld	a,d
-	or	e
-	jr	z,zWaitLoop	; As long as 'de' (length of sample) = 0, wait...
+	ld	a,d			; 4
+	or	e			; 4
+	jr	z,zWaitLoop		; 7	; As long as 'de' (length of sample) = 0, wait...
 
 	; 'hl' is the pointer to the sample, 'de' is the length of the sample,
 	; and 'iy' points to the translation table; let's go...
@@ -674,51 +677,53 @@ zWaitLoop:
 	; In our case, the so-called 'd' value is shadow register 'a'
 
 zWriteToDAC:
-	djnz	$		; Busy wait for specific amount of time in 'b'
+	djnz	$			; 8	; Busy wait for specific amount of time in 'b'
 
-	di			; disable interrupts (while updating DAC)
-	ld	a,2Ah		; DAC port
-	ld	(zYM2612_A0),a	; Set DAC port register
-	ld	a,(hl)		; Get next DAC byte
-	rlca
-	rlca
-	rlca
-	rlca
-	and	0Fh		; UPPER 4-bit offset into zDACDecodeTbl
-	ld	(.highnybble+2),a	; store into the instruction after .highnybble (self-modifying code)
-	ex	af,af'		; shadow register 'a' is the 'd' value for 'jman2050' encoding
+	di				; 4	; disable interrupts (while updating DAC)
+	ld	a,2Ah			; 7	; DAC port
+	ld	(zYM2612_A0),a		; 13	; Set DAC port register
+	ld	a,(hl)			; 7	; Get next DAC byte
+	rlca				; 4
+	rlca				; 4
+	rlca				; 4
+	rlca				; 4
+	and	0Fh			; 7	; UPPER 4-bit offset into zDACDecodeTbl
+	ld	(.highnybble+2),a	; 13	; store into the instruction after .highnybble (self-modifying code)
+	ex	af,af'			; 4	; shadow register 'a' is the 'd' value for 'jman2050' encoding
 
 ; zloc_18B
 .highnybble:
-	add	a,(iy+0)	; Get byte from zDACDecodeTbl (self-modified to proper index)
-	ld	(zYM2612_D0),a	; Write this byte to the DAC
-	ex	af,af'		; back to regular registers
-	ld	b,c		; reload 'b' with wait value
-	ei			; enable interrupts (done updating DAC, busy waiting for next update)
+	add	a,(iy+0)		; 19	; Get byte from zDACDecodeTbl (self-modified to proper index)
+	ld	(zYM2612_D0),a		; 13	; Write this byte to the DAC
+	ex	af,af'			; 4	; back to regular registers
+	ld	b,c			; 4	; reload 'b' with wait value
+	ei				; 4	; enable interrupts (done updating DAC, busy waiting for next update)
 
-	djnz	$		; Busy wait for specific amount of time in 'b'
+	djnz	$			; 8	; Busy wait for specific amount of time in 'b'
 
-	di			; disable interrupts (while updating DAC)
-	push	af
-	pop	af
-	ld	a,2Ah		; DAC port
-	ld	(zYM2612_A0),a	; Set DAC port register
-	ld	b,c		; reload 'b' with wait value
-	ld	a,(hl)		; Get next DAC byte
-	inc	hl		; Next byte in DAC stream...
-	dec	de		; One less byte
-	and	0Fh		; LOWER 4-bit offset into zDACDecodeTbl
-	ld	(.lownybble+2),a	; store into the instruction after .lownybble (self-modifying code)
-	ex	af,af'		; shadow register 'a' is the 'd' value for 'jman2050' encoding
+	di				; 4	; disable interrupts (while updating DAC)
+	push	af			; 11
+	pop	af			; 11
+	ld	a,2Ah			; 7	; DAC port
+	ld	(zYM2612_A0),a		; 13	; Set DAC port register
+	ld	b,c			; 4	; reload 'b' with wait value
+	ld	a,(hl)			; 7	; Get next DAC byte
+	inc	hl			; 6	; Next byte in DAC stream...
+	dec	de			; 6	; One less byte
+	and	0Fh			; 7	; LOWER 4-bit offset into zDACDecodeTbl
+	ld	(.lownybble+2),a	; 13	; store into the instruction after .lownybble (self-modifying code)
+	ex	af,af'			; 4	; shadow register 'a' is the 'd' value for 'jman2050' encoding
 
 ; zloc_1A8
 .lownybble:
-	add	a,(iy+0)	; Get byte from zDACDecodeTbl (self-modified to proper index)
-	ld	(zYM2612_D0),a	; Write this byte to the DAC
-	ex	af,af'		; back to regular registers
-	ei			; enable interrupts (done updating DAC, busy waiting for next update)
-	jp	zWaitLoop	; Back to the wait loop; if there's more DAC to write, we come back down again!
-
+	add	a,(iy+0)		; 19	; Get byte from zDACDecodeTbl (self-modified to proper index)
+	ld	(zYM2612_D0),a		; 13	; Write this byte to the DAC
+	ex	af,af'			; 4	; back to regular registers
+	ei				; 4	; enable interrupts (done updating DAC, busy waiting for next update)
+	jp	zWaitLoop		; 10	; Back to the wait loop; if there's more DAC to write, we come back down again!
+					; 289
+	; 289 cycles for two samples. zDACMasterPlaylist should use 289
+	; divided by 2 as the second parameter to pcmLoopCounter.
 ; ---------------------------------------------------------------------------
 ; 'jman2050' DAC decode lookup table
 ; zbyte_1B3
@@ -1372,7 +1377,7 @@ zPSGNoteOff:
 ; zbyte_534
 zFrequencies:
 	dw 025Eh,0284h,02ABh,02D3h,02FEh,032Dh,035Ch,038Fh,03C5h,03FFh,043Ch,047Ch
-    if OptimiseDriver=0	; We will calculate these, instead, which will save space
+    if ~~OptimiseDriver	; We will calculate these, instead, which will save space
 	dw 0A5Eh,0A84h,0AABh,0AD3h,0AFEh,0B2Dh,0B5Ch,0B8Fh,0BC5h,0BFFh,0C3Ch,0C7Ch
 	dw 125Eh,1284h,12ABh,12D3h,12FEh,132Dh,135Ch,138Fh,13C5h,13FFh,143Ch,147Ch
 	dw 1A5Eh,1A84h,1AABh,1AD3h,1AFEh,1B2Dh,1B5Ch,1B8Fh,1BC5h,1BFFh,1C3Ch,1C7Ch
@@ -1444,7 +1449,7 @@ zResumeTrack:
 	jr	z,.nexttrack			; If not, jump
 	bit	2,(ix+zTrack.PlaybackControl)	; Is SFX overriding track?
 	jr	nz,.nexttrack			; If yes, jump
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	; cfSetVoiceCont already does this
 	ld	c,(ix+zTrack.AMSFMSPan)		; AMS/FMS/panning flags
 	ld	a,(ix+zTrack.VoiceControl)	; Get voice control bits...
@@ -1521,7 +1526,7 @@ zQueueItem:
 zPlaySoundByIndex:
 	or	a				; is it sound 00?
 	jp	z,zClearTrackPlaybackMem	; if yes, jump to RESET EVERYTHING!!
-    if MusID__First-1 == 80h
+    if MusID__First-1 = 80h
 	ret	p				; return if it was (invalidates 00h-7Fh; maybe we don't want that someday?)
     else
 	cp	MusID__First
@@ -1587,29 +1592,32 @@ zPlaySegaSound:
 	ld	c,80h			; If QueueToPlay is not this, stops Sega PCM
 
 .loop:
-	ld	a,(hl)			; Get next PCM byte
-	ld	(zYM2612_D0),a		; Send to DAC
-	inc	hl			; Advance pointer
-	nop
-	ld	b,0Ch			; Sega PCM pitch
-	djnz	$			; Delay loop
+	ld	a,(hl)				; 7	; Get next PCM byte
+	ld	(zYM2612_D0),a			; 13	; Send to DAC
+	inc	hl				; 6	; Advance pointer
+	nop					; 4
+	ld	b,pcmLoopCounter(16500,146/2)	; 7	; Sega PCM pitch
+	djnz	$				; 8	; Delay loop
 
-	nop
-	ld	a,(zAbsVar.QueueToPlay)	; Get next item to play
-	cp	c			; Is it 80h?
-	jr	nz,.stop		; If not, stop Sega PCM
-	ld	a,(hl)			; Get next PCM byte
-	ld	(zYM2612_D0),a		; Send to DAC
-	inc	hl			; Advance pointer
-	nop
-	ld	b,0Ch			; Sega PCM pitch
-	djnz	$			; Delay loop
+	nop					; 4
+	ld	a,(zAbsVar.QueueToPlay)		; 13	; Get next item to play
+	cp	c				; 4	; Is it 80h?
+	jr	nz,.stop			; 7	; If not, stop Sega PCM
+	ld	a,(hl)				; 7	; Get next PCM byte
+	ld	(zYM2612_D0),a			; 13	; Send to DAC
+	inc	hl				; 6	; Advance pointer
+	nop					; 4
+	ld	b,pcmLoopCounter(16500,146/2)	; 7	; Sega PCM pitch
+	djnz	$				; 8	; Delay loop
 
-	nop
-	dec	de			; 2 less bytes to play
-	ld	a,d			; a = d
-	or	e			; Is de zero?
-	jp	nz,.loop		; If not, loop
+	nop					; 4
+	dec	de				; 6	; 2 less bytes to play
+	ld	a,d				; 4	; a = d
+	or	e				; 4	; Is de zero?
+	jp	nz,.loop			; 10	; If not, loop
+						; 146
+	; Two samples per 146 cycles, meaning that the second parameter
+	; to pcmLoopCounter should be 146 divided by 2.
 
 .stop:
 	call	zBankSwitchToMusic
@@ -1621,7 +1629,7 @@ zPlaySegaSound:
 ; ---------------------------------------------------------------------------
 ; zloc_73D
 zPlayMusic:
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; This is a workaround for a bug, where playing a new song will distort any SFX that were already playing
 	push	af
 	call	zStopSoundEffects	; Stop all sounds before starting BGM
@@ -1685,7 +1693,10 @@ zPlayMusic:
 	xor	a
 	ld	(zAbsVar.1upPlaying),a		; clear 1-up is playing flag (it isn't)
 	ld	(zAbsVar.FadeInCounter),a	; clear fade-in frame count
+    if ~~OptimiseDriver
+	; zInitMusicPlayback already does this.
 	ld	(zAbsVar.FadeOutCounter),a	; clear fade-out frame count
+    endif
 
 ; zloc_78E
 zBGMLoad:
@@ -1743,7 +1754,7 @@ zBGMLoad:
 	push	hl
 	push	de
 	push	bc
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	exx
     endif
 	call	zSaxmanDec
@@ -1786,7 +1797,7 @@ zBGMLoad:
 	push	iy				; Save 'iy'
 	ld	iy,zTracksSongStart			; 'iy' points to start of track memory
 	ld	c,(ix+4)			; Get tempo divider -> 'c'
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	ld	de,zFMDACInitBytes		; 'de' points to zFMDACInitBytes
     endif
@@ -1798,7 +1809,7 @@ zBGMLoad:
     else
 	ld	(iy+zTrack.PlaybackControl),82h	; Set "track is playing" bit and "track at rest" bit
     endif
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	ld	a,(de)				; Get current byte from zFMDACInitBytes -> 'a'
 	inc	de				; will get next byte from zFMDACInitBytes next time
@@ -1808,7 +1819,7 @@ zBGMLoad:
 	ld	(iy+zTrack.StackPointer),zTrack.GoSubStack	; set "gosub" (coord flag F8h) stack init value (starts at end of this track's memory)
 	ld	(iy+zTrack.AMSFMSPan),0C0h			; default Panning / AMS / FMS settings (only stereo L/R enabled)
 	ld	(iy+zTrack.DurationTimeout),1			; set current duration timeout to 1 (should expire next update, play first note, etc.)
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	push	de				; saving zFMDACInitBytes pointer
     endif
@@ -1831,7 +1842,7 @@ zBGMLoad:
 	ld	de,zTrack.len		; size of all tracks -> 'de'
 	add	iy,de			; offset to next track!
 	pop	bc			; restore 'bc' (number of channels and tempo divider)
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	pop	de			; restore 'de' (zFMDACInitBytes current pointer)
     endif
@@ -1843,20 +1854,20 @@ zBGMLoad:
 	cp	7			; Does it equal 7?  (6 FM channels)
 	jr	nz,.silencefm6		; If not, skip this next part
 	xor	a			; Clear 'a'
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	ld	c,a			; c = 0
     endif
 	jr	.writesilence		; jump to .writesilence
 
 .silencefm6:
 	; Silence FM Channel 6 specifically if it's not in use
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	; A later call to zFMNoteOff does this, already
 	ld	a,28h			; Key on/off FM register
 	ld	c,6			; FM channel 6
 	rst	zWriteFMI		; All operators off
     endif
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The added zFMSilenceChannel does this, already
 	ld	a,42h			; Starting at FM Channel 6 Operator 1 Total Level register
 	ld	c,0FFh			; Silence value
@@ -1876,7 +1887,7 @@ zBGMLoad:
 	ld	c,0C0h			; default Panning / AMS / FMS settings (only stereo L/R enabled)
 	rst	zWriteFMII		; Set it!
 	ld	a,80h			; FM Channel 6 is NOT in use (will enable DAC)
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	ld	c,a			; Set this as value to be used in FM register write coming up...
     endif
 
@@ -1900,7 +1911,7 @@ zInitBGMPSG:
 	push	iy			; Save 'iy'
 	ld	iy,zSongPSG1		; 'iy' points to start of PSG track memory (7 prior tracks were DAC and 6 FM)
 	ld	c,(ix+4)		; Get tempo divider -> 'c'
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	ld	de,zPSGInitBytes	; 'de' points to zPSGInitBytes
     endif
@@ -1912,7 +1923,7 @@ zInitBGMPSG:
     else
 	ld	(iy+zTrack.PlaybackControl),82h	; Set "track is playing" bit and "track at rest" bit
     endif
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	ld	a,(de)				; Get current byte from zPSGInitBytes -> 'a'
 	inc	de				; will get next byte from zPSGInitBytes next time
@@ -1921,7 +1932,7 @@ zInitBGMPSG:
 	ld	(iy+zTrack.TempoDivider),c	; Store timing divisor from header for this track
 	ld	(iy+zTrack.StackPointer),zTrack.GoSubStack	; "gosub" stack init value
 	ld	(iy+zTrack.DurationTimeout),1	; set current duration timeout to 1 (should expire next update, play first note, etc.)
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	push	de				; saving zPSGInitBytes pointer
     endif
@@ -1948,7 +1959,7 @@ zInitBGMPSG:
 	ld	de,zTrack.len			; size of all tracks -> 'de'
 	add	iy,de				; offset to next track!
 	pop	bc				; restore 'bc' (number of channels and tempo divider)
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; The bugfix in zInitMusicPlayback does this, already
 	pop	de				; restore 'de' (zPSGInitBytes current pointer)
     endif
@@ -2089,7 +2100,7 @@ zPlaySound_CheckRing:
 ; ---------------------------------------------------------------------------
 ; zloc_942:
 zPlaySound_CheckGloop:
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	ld	a,c
     endif
 	cp	SndID_Gloop			; Is this the bloop/gloop noise?
@@ -2103,7 +2114,7 @@ zPlaySound_CheckGloop:
 ; ---------------------------------------------------------------------------
 ; zloc_953:
 zPlaySound_CheckSpindash:
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	ld	a,c
     endif
 	cp	SndID_SpindashRev	; is this the spindash rev sound playing?
@@ -2788,132 +2799,132 @@ coordflagLookup:
 	jr	$
 ; ---------------------------------------------------------------------------
 	jp	cfPanningAMSFMS		; E0
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfDetune		; E1
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetCommunication	; E2
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfJumpReturn		; E3
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfFadeInToPrevious	; E4
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetTempoDivider	; E5
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfChangeFMVolume	; E6
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfPreventAttack		; E7
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfNoteFill		; E8
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfChangeTransposition	; E9
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetTempo		; EA
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetTempoMod		; EB
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfChangePSGVolume	; EC
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfClearPush		; ED
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfStopSpecialFM4	; EE
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetVoice		; EF
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfModulation		; F0
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfEnableModulation	; F1
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfStopTrack		; F2
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetPSGNoise		; F3
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfDisableModulation	; F4
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfSetPSGTone		; F5
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfJumpTo		; F6
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfRepeatAtPos		; F7
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfJumpToGosub		; F8
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
 	jp	cfOpF9			; F9
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	db	0
     endif
 ; ---------------------------------------------------------------------------
@@ -2934,7 +2945,7 @@ cfPanningAMSFMS:
 
 	bit	7,(ix+zTrack.VoiceControl)	; Is this a PSG track?
 	ret	m				; If so, quit!
-    if FixDriverBugs=0
+    if ~~FixDriverBugs
 	; This check is in the wrong place.
 	; If this flag is triggered by a music track while it's being overridden
 	; by an SFX, it will use the old panning when the SFX ends.
@@ -3023,7 +3034,7 @@ cfFadeInToPrevious:
 	ld	a,(ix+zTrack.Volume)		; Get channel volume
 	add	a,c				; Apply current fade value
 	ld	(ix+zTrack.Volume),a		; Store it back
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	; This bit is always cleared (see zPlayMusic)
 	bit	2,(ix+zTrack.PlaybackControl)	; Is track being overridden by SFX?
 	jr	nz,.nextfm			; If so, skip next part
@@ -3167,7 +3178,7 @@ cfChangePSGVolume:
 ; This broken code is all that's left of it.
 ; zlocret_E00 cfUnused cfUnused1
 cfClearPush:
-    if (OptimiseDriver=0)&&(FixDriverBugs=0)
+    if (~~OptimiseDriver)&&(~~FixDriverBugs)
 	; Dangerous!  It doesn't put back the byte read, meaning one gets skipped!
 	ret
     endif
@@ -3826,23 +3837,27 @@ offset :=	zDACPtrTbl
 ptrsize :=	2+2
 idstart :=	81h
 
-	db	id(zDACPtr_Kick),17h		; 81h
-	db	id(zDACPtr_Snare),1		; 82h
-	db	id(zDACPtr_Clap),6		; 83h
-	db	id(zDACPtr_Scratch),8		; 84h
-	db	id(zDACPtr_Timpani),1Bh		; 85h
-	db	id(zDACPtr_Tom),0Ah		; 86h
-	db	id(zDACPtr_Bongo),1Bh		; 87h
-	db	id(zDACPtr_Timpani),12h		; 88h
-	db	id(zDACPtr_Timpani),15h		; 89h
-	db	id(zDACPtr_Timpani),1Ch		; 8Ah
-	db	id(zDACPtr_Timpani),1Dh		; 8Bh
-	db	id(zDACPtr_Tom),2		; 8Ch
-	db	id(zDACPtr_Tom),5		; 8Dh
-	db	id(zDACPtr_Tom),8		; 8Eh
-	db	id(zDACPtr_Bongo),8		; 8Fh
-	db	id(zDACPtr_Bongo),0Bh		; 90h
-	db	id(zDACPtr_Bongo),12h		; 91h
+dac_sample_metadata macro label,sampleRate
+	db	id(label),pcmLoopCounter(sampleRate,289/2)	; See zWriteToDAC for an explanation of this magic number.
+    endm
+
+	dac_sample_metadata zDACPtr_Kick,    8250	; 81h
+	dac_sample_metadata zDACPtr_Snare,  24000	; 82h
+	dac_sample_metadata zDACPtr_Clap,   17000	; 83h
+	dac_sample_metadata zDACPtr_Scratch,15000	; 84h
+	dac_sample_metadata zDACPtr_Timpani, 7500	; 85h
+	dac_sample_metadata zDACPtr_Tom,    14000	; 86h
+	dac_sample_metadata zDACPtr_Bongo,   7500	; 87h
+	dac_sample_metadata zDACPtr_Timpani, 9750	; 88h
+	dac_sample_metadata zDACPtr_Timpani, 8750	; 89h
+	dac_sample_metadata zDACPtr_Timpani, 7250	; 8Ah
+	dac_sample_metadata zDACPtr_Timpani, 7000	; 8Bh
+	dac_sample_metadata zDACPtr_Tom,    23000	; 8Ch
+	dac_sample_metadata zDACPtr_Tom,    18000	; 8Dh
+	dac_sample_metadata zDACPtr_Tom,    15000	; 8Eh
+	dac_sample_metadata zDACPtr_Bongo,  15000	; 8Fh
+	dac_sample_metadata zDACPtr_Bongo,  13000	; 90h
+	dac_sample_metadata zDACPtr_Bongo,   9750	; 91h
 
 ; ||||||||||||||| S U B R O U T I N E |||||||||||||||||||||||||||||||||||||||
 
@@ -3865,7 +3880,7 @@ zSaxmanDec:
 	ld	b,(hl)			; bc = (hl) i.e. "size of song"
 	inc	hl
 	ld	(zGetNextByte+1),hl	; modify inst. @ zGetNextByte -- set to beginning of decompression stream
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	inc	bc
     endif
 	ld	(zDecEndOrGetByte+1),bc	; modify inst. @ zDecEndOrGetByte -- set to length of song, +1
@@ -3980,7 +3995,7 @@ zDecEndOrGetByte:
     endif
 	dec	hl			; ...where this will be zero
 	ld	(zDecEndOrGetByte+1),hl	; Self-modified code: update the count in case it's not zero
-    if OptimiseDriver=0
+    if ~~OptimiseDriver
 	ld	a,h
 	or	l
 	jr	z,zDecEnd		; If 'h' and 'l' both equal zero, we quit!!
