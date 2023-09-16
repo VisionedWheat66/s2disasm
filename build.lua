@@ -9,6 +9,10 @@
 -- results in an accurate ROM being produced.
 local improved_sound_driver_compression = false
 
+-- These describe the Saxman decompression buffer in the sound driver.
+local music_buffer_address = 0x1380 -- Should always match zMusicData in s2.sounddriver.asm.
+local music_buffer_size = 0x7C0     -- Should always be zStack minus 0x40.
+
 ---------------------
 -- End of settings --
 ---------------------
@@ -66,18 +70,57 @@ end
 hashes_file = io.open("sound/music/compressed/hashes.lua", "w")
 
 hashes_file:write("improved_sound_driver_compression = " .. tostring(improved_sound_driver_compression) .. ",\n")
+hashes_file:write("music_buffer_address = " .. tostring(music_buffer_address) .. ",\n")
+hashes_file:write("music_buffer_size = " .. tostring(music_buffer_size) .. ",\n")
+
+local function record_file_hash(filename, identifier)
+	local hash = clownmd5.HashFile(filename)
+
+	-- Write this hash to 'hashes.lua'.
+	hashes_file:write(identifier .. " = '")
+
+	local function hash_string_iterator()
+		local position = 1
+
+		return function()
+				if position > hash:len() then
+					return nil
+				end
+
+				local byte
+				byte, position = string.unpack("I1", hash, position)
+
+				return byte
+			end
+	end
+
+	for byte in hash_string_iterator() do
+		hashes_file:write(string.format("\\x%02X", byte))
+	end
+
+	hashes_file:write("',\n")
+
+	return hash
+end
+
+local smps2asm_hash = record_file_hash("sound/_smps2asm_inc.asm", "smps2asm")
 
 -- Compress the songs.
 -- The songs to compress are listed in 'list of compressed songs.txt'.
 for song_name in io.lines("sound/music/list of compressed songs.txt") do
 	-- Determine the hash of the current song.
-	local current_hash = clownmd5.HashFile("sound/music/" .. song_name .. ".asm")
+	local current_hash = record_file_hash("sound/music/" .. song_name .. ".asm", "['" .. song_name .. "']")
 
 	-- Finally, check if the hash matches the one in 'hashes.lua'.
 	-- If it doesn't match, then the song has been modified and needs to be reassembled.
 	-- Alternatively, the song will need reassembling if the user has changed the compression.
 	-- Or reassemble the song if the assembled version is missing.
-	if current_hash ~= previous_hashes[song_name] or improved_sound_driver_compression ~= previous_hashes.improved_sound_driver_compression or not common.file_exists("sound/music/compressed/" .. song_name .. ".sax") then
+	if current_hash ~= previous_hashes[song_name]
+		or smps2asm_hash ~= previous_hashes.smps2asm
+		or improved_sound_driver_compression ~= previous_hashes.improved_sound_driver_compression
+		or music_buffer_address ~= previous_hashes.music_buffer_address
+		or music_buffer_size ~= previous_hashes.music_buffer_size
+		or not common.file_exists("sound/music/compressed/" .. song_name .. ".sax") then
 		print("Reassembling song '" .. song_name .. ".asm'...")
 
 		-- To begin with, we'll create a wrapper ASM file to set the environment
@@ -95,13 +138,13 @@ z80_ptr function x,(x)<<8&$FF00|(x)>>8&$00FF
 SonicDriverVer = 2
 	include "sound/_smps2asm_inc.asm"
 
-	phase $1380
+	phase $%X
 	include "sound/music/%s.asm"
 	dephase
 
-	if *>$7C0
+	if *>$%X
 		error "This song is too big and will overflow the decompression buffer! It should be uncompressed instead!"
-	endif]], song_name))
+	endif]], music_buffer_address, song_name, music_buffer_size))
 
 		song_file:close()
 
@@ -120,30 +163,6 @@ SonicDriverVer = 2
 		os.remove("song.lst")
 		os.remove("song.bin")
 	end
-
-	-- Write this hash to 'hashes.lua'.
-	hashes_file:write("['" .. song_name .. "'] = '")
-
-	local function hash_string_iterator()
-		local position = 1
-
-		return function()
-				if position > current_hash:len() then
-					return nil
-				end
-
-				local byte
-				byte, position = string.unpack("I1", current_hash, position)
-
-				return byte
-			end
-	end
-
-	for byte in hash_string_iterator() do
-		hashes_file:write(string.format("\\x%02X", byte))
-	end
-
-	hashes_file:write("',\n")
 end
 
 -- We've written the last part of the 'hashes.lua' file, so we can close it now.
