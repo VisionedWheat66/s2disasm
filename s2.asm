@@ -33490,11 +33490,11 @@ ChkLoadObj_2P:
 ; ---------------------------------------------------------------------------
 
 +
-	btst	#4,2(a0)	; the bit that's being tested for here should always be zero,
-	beq.s	+		; but assuming it weren't and this branch isn't taken,
-	bsr.w	AllocateObject	; then this object would not be loaded into one of the 12
-	bne.s	return_17FD8	; byte blocks after Dynamic_Object_RAM_2P_End and would most
-	bra.s	ChkLoadObj_2P_LoadData	; likely end up somwhere before this in Dynamic_Object_RAM
+	btst	#4,2(a0)
+	beq.s	+			; if this branch isn't taken, then this object would
+	bsr.w	AllocateObject		; not be loaded into one of the 12 byte blocks after
+	bne.s	return_17FD8		; Dynamic_Object_RAM_2P_End and would most likely end
+	bra.s	ChkLoadObj_2P_LoadData	; up somewhere before this in Dynamic_Object_RAM
 ; ---------------------------------------------------------------------------
 
 +
@@ -91064,6 +91064,8 @@ ArtNem_SEGA:			BINCLUDE	"art/nemesis/SEGA.nem"
 	even
 ArtNem_IntroTrails:		BINCLUDE	"art/nemesis/Shaded blocks from intro.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 MapEng_SEGA:			BINCLUDE	"mappings/misc/SEGA mappings.eni"
 	even
 
@@ -91158,11 +91160,17 @@ ArtNem_MenuBox:			BINCLUDE	"art/nemesis/A menu box with a shadow.nem"
 	even
 ArtNem_LevelSelectPics:		BINCLUDE	"art/nemesis/Pictures in level preview box from level select.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_ResultsText:		BINCLUDE	"art/nemesis/End of level results text.nem" ; Text for Sonic or Tails Got Through Act and Bonus/Perfect
 	even
 ArtNem_SpecialStageResults:	BINCLUDE	"art/nemesis/Special stage results screen art and some emeralds.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_Perfect:			BINCLUDE	"art/nemesis/Perfect text.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 
 ;---------------------------------------------------------------------------------------
@@ -91214,7 +91222,11 @@ ArtNem_Oilfall:			BINCLUDE	"art/nemesis/Cascading oil hitting oil from OOZ.nem"
 	even
 ArtNem_Oilfall2:		BINCLUDE	"art/nemesis/Cascading oil from OOZ.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_BallThing:		BINCLUDE	"art/nemesis/Ball on spring from OOZ (beta holdovers).nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ArtNem_LaunchBall:		BINCLUDE	"art/nemesis/Transporter ball from OOZ.nem"
 	even
@@ -91242,6 +91254,8 @@ ArtNem_CNZBonusSpike:		BINCLUDE	"art/nemesis/Spikey ball from CNZ slots.nem"
 	even
 ArtNem_BigMovingBlock:		BINCLUDE	"art/nemesis/Moving block from CNZ and CPZ.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_CNZElevator:		BINCLUDE	"art/nemesis/CNZ elevator.nem"
 	even
 ArtNem_CNZCage:			BINCLUDE	"art/nemesis/CNZ slot machine bars.nem"
@@ -91254,17 +91268,23 @@ ArtNem_CNZDiagPlunger:		BINCLUDE	"art/nemesis/Diagonal impulse spring from CNZ.n
 	even
 ArtNem_CNZVertPlunger:		BINCLUDE	"art/nemesis/Vertical impulse spring.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_CNZMiniBumper:		BINCLUDE	"art/nemesis/Drop target from CNZ.nem" ; Weird blocks that you hit 3 times to get rid of
 	even
 ArtNem_CNZFlipper:		BINCLUDE	"art/nemesis/Flippers.nem"
 	even
-ArtNem_CPZElevator:		BINCLUDE	"art/nemesis/Large moving platform from CNZ.nem"
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 
 ;---------------------------------------------------------------------------------------
 ; CPZ Assets
 ;---------------------------------------------------------------------------------------
+ArtNem_CPZElevator:		BINCLUDE	"art/nemesis/Large moving platform from CPZ.nem"
+	even
 ArtNem_WaterSurface:		BINCLUDE	"art/nemesis/Top of water in HPZ and CNZ.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ArtNem_CPZBooster:		BINCLUDE	"art/nemesis/Speed booster from CPZ.nem"
 	even
@@ -91296,28 +91316,22 @@ ArtNem_ARZBarrierThing:		BINCLUDE	"art/nemesis/One way barrier from ARZ.nem" ; U
 	even
 
 ;---------------------------------------------------------------------------------------
-; EHZ Badnik Assets (Part 1) (Why is this split?)
+; EHZ/OOZ Badnik Assets
 ;---------------------------------------------------------------------------------------
 ArtNem_Buzzer:			BINCLUDE	"art/nemesis/Buzzer enemy.nem"
 	even
-
-;---------------------------------------------------------------------------------------
-; OOZ Badnik Assets
-;---------------------------------------------------------------------------------------
 ArtNem_Octus:			BINCLUDE	"art/nemesis/Octopus badnik from OOZ.nem"
 	even
 ArtNem_Aquis:			BINCLUDE	"art/nemesis/Seahorse from OOZ.nem"
 	even
-
-;---------------------------------------------------------------------------------------
-; EHZ Badnik Assets (Part 2) (Why?)
-;---------------------------------------------------------------------------------------
 ArtNem_Masher:			BINCLUDE	"art/nemesis/EHZ Pirahna badnik.nem"
 	even
 
 ;---------------------------------------------------------------------------------------
 ; Boss Assets
 ;---------------------------------------------------------------------------------------
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_Eggpod:			BINCLUDE	"art/nemesis/Eggpod.nem" ; Robotnik's main ship
 	even
 ArtNem_CPZBoss:			BINCLUDE	"art/nemesis/CPZ boss.nem"
@@ -91330,7 +91344,11 @@ ArtNem_BossSmoke:		BINCLUDE	"art/nemesis/Smoke trail from CPZ and HTZ bosses.nem
 	even
 ArtNem_EHZBoss:			BINCLUDE	"art/nemesis/EHZ boss.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_EggChoppers:		BINCLUDE	"art/nemesis/Chopper blades for EHZ boss.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ArtNem_HTZBoss:			BINCLUDE	"art/nemesis/HTZ boss.nem"
 	even
@@ -91338,11 +91356,15 @@ ArtNem_ARZBoss:			BINCLUDE	"art/nemesis/ARZ boss.nem"
 	even
 ArtNem_MCZBoss:			BINCLUDE	"art/nemesis/MCZ boss.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_CNZBoss:			BINCLUDE	"art/nemesis/CNZ boss.nem"
 	even
 ArtNem_OOZBoss:			BINCLUDE	"art/nemesis/OOZ boss.nem"
 	even
 ArtNem_MTZBoss:			BINCLUDE	"art/nemesis/MTZ boss.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ArtUnc_FallingRocks:		BINCLUDE	"art/uncompressed/Falling rocks and stalactites from MCZ.bin"
 	even
@@ -91362,6 +91384,8 @@ ArtNem_ChopChop:		BINCLUDE	"art/nemesis/Shark from ARZ.nem"
 ;---------------------------------------------------------------------------------------
 ArtNem_Rexon:			BINCLUDE	"art/nemesis/Rexxon (lava snake) from HTZ.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_Spiker:			BINCLUDE	"art/nemesis/Driller badnik from HTZ.nem"
 	even
 
@@ -91374,7 +91398,7 @@ ArtNem_Turtloid:		BINCLUDE	"art/nemesis/Turtle badnik from SCZ.nem"
 	even
 
 ;---------------------------------------------------------------------------------------
-; EHZ Badnik Assets (Part 3) (WTF???)
+; EHZ Badnik Assets (again)
 ;---------------------------------------------------------------------------------------
 ArtNem_Coconuts:		BINCLUDE	"art/nemesis/Coconuts badnik from EHZ.nem"
 	even
@@ -91422,6 +91446,8 @@ ArtNem_SilverSonic:		BINCLUDE	"art/nemesis/Silver Sonic.nem"
 	even
 ArtNem_Tornado:			BINCLUDE	"art/nemesis/The Tornado.nem" ; Sonic's plane.
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_WfzWallTurret:		BINCLUDE	"art/nemesis/Wall turret from WFZ.nem"
 	even
 ArtNem_WfzHook:			BINCLUDE	"art/nemesis/Hook on chain from WFZ.nem"
@@ -91429,6 +91455,8 @@ ArtNem_WfzHook:			BINCLUDE	"art/nemesis/Hook on chain from WFZ.nem"
 ArtNem_WfzGunPlatform:		BINCLUDE	"art/nemesis/Retracting platform from WFZ.nem"
 	even
 ArtNem_WfzConveyorBeltWheel:	BINCLUDE	"art/nemesis/Wheel for belt in WFZ.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ArtNem_WfzFloatingPlatform:	BINCLUDE	"art/nemesis/Moving platform from WFZ.nem"
 	even
@@ -91450,6 +91478,8 @@ ArtNem_WfzHrzntlPrpllr:		BINCLUDE	"art/nemesis/Horizontal spinning blades in WFZ
 	even
 ArtNem_WfzTiltPlatforms:	BINCLUDE	"art/nemesis/Tilting plaforms in WFZ.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_WfzThrust:		BINCLUDE	"art/nemesis/Thrust from Robotnik's getaway ship in WFZ.nem"
 	even
 ArtNem_WFZBoss:			BINCLUDE	"art/nemesis/WFZ boss.nem"
@@ -91460,9 +91490,13 @@ ArtNem_RobotnikRunning:		BINCLUDE	"art/nemesis/Robotnik.nem"
 	even
 ArtNem_RobotnikLower:		BINCLUDE	"art/nemesis/Robotnik's lower half.nem"
 	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
+	even
 ArtNem_DEZWindow:		BINCLUDE	"art/nemesis/Window in back that Robotnik looks through in DEZ.nem"
 	even
 ArtNem_DEZBoss:			BINCLUDE	"art/nemesis/Eggrobo.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 ; This last-minute badnik addition was mistakenly included with the WFZ/DEZ assets instead of in its own 'CNZ Badnik Assets' section.
 ArtNem_Crawl:			BINCLUDE	"art/nemesis/Bouncer badnik from CNZ.nem"
@@ -92273,6 +92307,8 @@ ArtNem_BoltEnd_Rope:		BINCLUDE	"art/nemesis/Bolt end and rope from MTZ.nem"
 ArtNem_MtzCog:			BINCLUDE	"art/nemesis/Small cog from MTZ.nem"
 	even
 ArtNem_MtzSpinTubeFlash:	BINCLUDE	"art/nemesis/Spin tube flash from MTZ.nem"
+	even
+				BINCLUDE	"art/nemesis/Empty file.nem"
 	even
 
 ; --------------------------------------------------------------------------------------
